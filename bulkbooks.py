@@ -14,11 +14,15 @@ def save_ids(file_name, ids):
         db['ids'] = repr(ids)
 
 def get_id(line):
-    parts = line.split('/')
-    id = parts.pop()
-    if id != '':
-        return id
-    return parts.pop()
+    try:
+        line = line.strip()
+        parts = line.split('/')
+        id = parts.pop()
+        if id != '':
+            return id
+        return parts.pop()
+    except:
+        return ''
 
 def process(filename):
     ids_file = 'downloaded-ids.db'
@@ -27,22 +31,24 @@ def process(filename):
     ii = 1
     with open(filename) as file:
         for line in file:
-            line = line.strip()
-            if line == '':
-                continue
-
             id = get_id(line)
+            if id == '':
+                print(f'>>>> error parsing book id from : {line}')
+                continue
             ids = load_ids(ids_file)
             # print("ID >>>>>>>> " + str(ids))
             if id in ids:
                 print(">>>> skipping book id: " + id)
                 continue
             args = parse_args(parser, [id])
-            SafariBooks(args)
+            try:
+                SafariBooks(args)
+                ids.add(id)
+                save_ids(ids_file, ids)
+                print(f'>>> Finished Book {id} Number {ii}')
+            except:
+                print(f'>>> Error retrieving Book {id} Number {ii}')
             ii += 1
-            ids.add(id)
-            print(f'>>> Finished Book {id} Number {ii}')
-            save_ids(ids_file, ids)
     # print(ids)
 
 
