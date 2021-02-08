@@ -38,7 +38,8 @@ def process(filename):
             ids = load_ids(ids_file)
             # print("ID >>>>>>>> " + str(ids))
             if id in ids:
-                print(">>>> skipping book id: " + id)
+                print(f'>>>> skipping book id: {id}')
+                print(f'>>>> from: {line}')
                 continue
             args = parse_args(parser, [id])
             try:
