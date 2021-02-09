@@ -62,7 +62,7 @@ def process(filename):
                 print(f'>>> Error retrieving Book {id} Number {ii}')
             print(f"+++ iteration {ii} +++")
             print(f"+++ cooling down sockets+++")
-            sleep(randint(1,13))
+            sleep(randint(3,13))
         total_processing = time.process_time() - begin_at
         print(f'Processed {ii} Urls in {total_processing} seconds')
         print(f'Parse errors: {parse_err}')
