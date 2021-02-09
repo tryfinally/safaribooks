@@ -1,4 +1,6 @@
 import dbm
+from random import randint
+from time import sleep
 from safaribooks import SafariBooks, define_arg_parser, parse_args
 
 
@@ -29,27 +31,34 @@ def process(filename):
     ids = set()
     parser = define_arg_parser()
     ii = 1
+    done = skipped = parse_err = 0
     with open(filename) as file:
         for line in file:
             id = get_id(line)
             if id == '':
                 print(f'>>>> error parsing book id from : {line}')
+                ++parse_err
                 continue
             ids = load_ids(ids_file)
             # print("ID >>>>>>>> " + str(ids))
             if id in ids:
+                ++skipped
                 print(f'>>>> skipping book id: {id}')
                 print(f'>>>> from: {line}')
                 continue
             args = parse_args(parser, [id])
             try:
                 SafariBooks(args)
+                ++done
                 ids.add(id)
                 save_ids(ids_file, ids)
                 print(f'>>> Finished Book {id} Number {ii}')
             except:
                 print(f'>>> Error retrieving Book {id} Number {ii}')
             ii += 1
+            print(f"+++ iteration {ii} +++")
+            print(f"+++ cooling down sockets+++")
+            sleep(randint(1,13))
     # print(ids)
 
 
