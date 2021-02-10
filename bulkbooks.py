@@ -1,7 +1,8 @@
 import dbm
 from random import randint
+from shutil import copyfile
 from time import sleep, time, process_time
-from safaribooks import SafariBooks, define_arg_parser, parse_args
+from safaribooks import Display, SafariBooks, define_arg_parser, parse_args
 
 
 def load_ids(file_name):
@@ -39,12 +40,12 @@ def process(filename):
             line = line.strip()
             id = get_id(line)
             if id == '':
-                print(f'>>>> [{ii:.>4n}] error parsing book id from: [{line}]\n')
+                print(f'{Display.SH_YELLOW}>>>> [{ii:.>4n}]{Display.SH_DEFAULT} error parsing book id from: [{line}]\n')
                 ++parse_err
                 continue
             if id in ids:
                 ++skipped
-                print(f'>>>> [{ii:.>4n}] skipping previously downloaded book id:{id:<15}')
+                print(f'{Display.SH_YELLOW}>>>> [{ii:.>4n}]{Display.SH_DEFAULT} skipping previously downloaded book id:{id:<15}')
                 print(f'            URL was: {line}\n')
                 continue
             try:
@@ -56,22 +57,28 @@ def process(filename):
                 ids.add(id)
                 save_ids(ids_file, ids)
                 ++done
-                print(f'>>>> [{ii:.>4n}] Book id:{id:<15} processed successfully in:{elapsed_time:.0f} seconds')
+                print(f'{Display.SH_YELLOW}>>>> [{ii:.>4n}]{Display.SH_DEFAULT} Book id:{id:<15} processed successfully in:{elapsed_time:.0f} seconds')
             except:
-                print(f'>>>> [{ii:.>4n}] Exception while getting Book id:{id:<15}')
+                exception = sys.exc_info()[0]
+                print(f'{Display.SH_BG_RED}>>>> [{ii:.>4n}]{Display.SH_DEFAULT} Error downloading book id:{id:<15} exception: {exception}\n')
+                # WORKAROUND: safaribook will delete the cookie file, restore it
+                copyfile('cookies.json.saved', 'cookies.json')
+                continue
 
             delay_time = randint(3,19)
             print(f"+++ cooling down sockets for {delay_time} seconds +++\n")
             sleep(delay_time)
 
         total_processing = process_time() - begin_at
-        print(f'Processed {ii:>4n} Urls in {actual_time:.0f} seconds')
-        print(f'Parse errors: {parse_err:>3}')
-        print(f'Skipped     : {skipped:>3}')
-        print(f'Downloaded  : {done:>3}')
-        print(f'Overall time: {total_processing:.>7,.0f} seconds')
-        avg_processing = actual_time / done
-        print(f'Average Time: {avg_processing:.>7,.0f} seconds per book')
+        print('{}{}{}'.format(Display.SH_YELLOW,"="*20, Display.SH_DEFAULT))
+        print(f'{Display.SH_YELLOW}Processed   :{Display.SH_DEFAULT} {ii:>6n} Urls in {actual_time:.0f} seconds')
+        print(f'{Display.SH_YELLOW}Parse errors:{Display.SH_DEFAULT} {parse_err:>6}')
+        print(f'{Display.SH_YELLOW}Skipped     :{Display.SH_DEFAULT} {skipped:>6}')
+        print(f'{Display.SH_YELLOW}Downloaded  :{Display.SH_DEFAULT} {done:>6}')
+        print(f'{Display.SH_YELLOW}Overall time:{Display.SH_DEFAULT} {total_processing:>6.0f} seconds')
+        if done != 0:
+            avg_processing = round(actual_time / done)
+            print(f'{Display.SH_YELLOW}Average Time:{Display.SH_DEFAULT} {avg_processing:>6} seconds per book')
 
 
 USAGE = "\n\nDownload and generate an EPUB of your favorite books from Safari Books Online.\n" + \
@@ -89,4 +96,5 @@ if __name__ == "__main__":
         exit(1)
 
     file_name = sys.argv[1]
+    copyfile('cookies.json', 'cookies.json.saved')
     process(file_name)
