@@ -17,7 +17,6 @@ def save_ids(file_name, ids):
 
 def get_id(line):
     try:
-        line = line.strip()
         parts = line.split('/')
         id = parts.pop()
         if id != '':
@@ -30,46 +29,49 @@ def process(filename):
     ids_file = 'downloaded-ids.db'
     ids = set()
     parser = define_arg_parser()
-    ii = 1
+    ii = 0
     actual_time = done = skipped = parse_err = 0
     ids = load_ids(ids_file)
     with open(filename) as file:
         begin_at = process_time()
         for line in file:
             ii += 1
+            line = line.strip()
             id = get_id(line)
             if id == '':
-                print(f'>>>> error parsing book id from : {line}')
+                print(f'>>>> [{ii:.>4n}] error parsing book id from: [{line}]\n')
                 ++parse_err
                 continue
             if id in ids:
                 ++skipped
-                print(f'>>>> skipping book id: {id}')
-                print(f'>>>> from: {line}')
+                print(f'>>>> [{ii:.>4n}] skipping previously downloaded book id:{id:<15}')
+                print(f'            URL was: {line}\n')
                 continue
-            args = parse_args(parser, [id])
             try:
+                args = parse_args(parser, [id])
                 start = process_time()
                 SafariBooks(args)
                 elapsed_time = process_time() - start
                 actual_time += elapsed_time
-                ++done
                 ids.add(id)
                 save_ids(ids_file, ids)
-                print(f'>>> {ii} Book: {id} processed successfully in {elapsed_time} seconds')
+                ++done
+                print(f'>>>> [{ii:.>4n}] Book id:{id:<15} processed successfully in:{elapsed_time:.0f} seconds')
             except:
-                print(f'>>> Error retrieving Book {id} Number {ii}')
-            print(f"+++ iteration {ii} +++")
-            print(f"+++ cooling down sockets+++")
-            sleep(randint(3,13))
+                print(f'>>>> [{ii:.>4n}] Exception while getting Book id:{id:<15}')
+
+            delay_time = randint(3,19)
+            print(f"+++ cooling down sockets for {delay_time} seconds +++\n")
+            sleep(delay_time)
+
         total_processing = process_time() - begin_at
-        print(f'Processed {ii} Urls in {actual_time} seconds')
-        print(f'Parse errors: {parse_err}')
-        print(f'Skipped     : {skipped}')
-        print(f'Created     : {done}')
-        print(f'Overall time: {total_processing} seconds')
+        print(f'Processed {ii:>4n} Urls in {actual_time:.0f} seconds')
+        print(f'Parse errors: {parse_err:>3}')
+        print(f'Skipped     : {skipped:>3}')
+        print(f'Downloaded  : {done:>3}')
+        print(f'Overall time: {total_processing:.>7,.0f} seconds')
         avg_processing = actual_time / done
-        print(f'Average Book: {avg_processing} seconds')
+        print(f'Average Time: {avg_processing:.>7,.0f} seconds per book')
 
 
 USAGE = "\n\nDownload and generate an EPUB of your favorite books from Safari Books Online.\n" + \
