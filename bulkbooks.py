@@ -1,6 +1,6 @@
 import dbm
 from random import randint
-from time import sleep, time
+from time import sleep, time, process_time
 from safaribooks import SafariBooks, define_arg_parser, parse_args
 
 
@@ -31,10 +31,10 @@ def process(filename):
     ids = set()
     parser = define_arg_parser()
     ii = 1
-    done = skipped = parse_err = 0
+    actual_time = done = skipped = parse_err = 0
 
     with open(filename) as file:
-        begin_at = time.process_time()
+        begin_at = process_time()
         for line in file:
             ii += 1
             id = get_id(line)
@@ -51,9 +51,10 @@ def process(filename):
                 continue
             args = parse_args(parser, [id])
             try:
-                start = time.process_time()
+                start = process_time()
                 SafariBooks(args)
-                elapsed_time = time.process_time() - start
+                elapsed_time = process_time() - start
+                actual_time += elapsed_time
                 ++done
                 ids.add(id)
                 save_ids(ids_file, ids)
@@ -63,13 +64,14 @@ def process(filename):
             print(f"+++ iteration {ii} +++")
             print(f"+++ cooling down sockets+++")
             sleep(randint(3,13))
-        total_processing = time.process_time() - begin_at
-        print(f'Processed {ii} Urls in {total_processing} seconds')
+        total_processing = process_time() - begin_at
+        print(f'Processed {ii} Urls in {actual_time} seconds')
         print(f'Parse errors: {parse_err}')
         print(f'Skipped     : {skipped}')
         print(f'Created     : {done}')
-        avg_time = total_processing / done
-        print(f'Created     : {avg_time}')
+        print(f'Overall time: {total_processing} seconds')
+        avg_processing = actual_time / done
+        print(f'Average Book: {avg_processing} seconds')
 
 
 USAGE = "\n\nDownload and generate an EPUB of your favorite books from Safari Books Online.\n" + \
