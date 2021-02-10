@@ -32,7 +32,7 @@ def process(filename):
     parser = define_arg_parser()
     ii = 1
     actual_time = done = skipped = parse_err = 0
-
+    ids = load_ids(ids_file)
     with open(filename) as file:
         begin_at = process_time()
         for line in file:
@@ -42,8 +42,6 @@ def process(filename):
                 print(f'>>>> error parsing book id from : {line}')
                 ++parse_err
                 continue
-            ids = load_ids(ids_file)
-            # print("ID >>>>>>>> " + str(ids))
             if id in ids:
                 ++skipped
                 print(f'>>>> skipping book id: {id}')
