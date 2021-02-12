@@ -41,10 +41,10 @@ def process(filename):
             id = get_id(line)
             if id == '':
                 print(f'{Display.SH_YELLOW}>>>> [{ii:.>4n}]{Display.SH_DEFAULT} error parsing book id from: [{line}]\n')
-                ++parse_err
+                parse_err += 1
                 continue
             if id in ids:
-                ++skipped
+                skipped += 1
                 print(f'{Display.SH_YELLOW}>>>> [{ii:.>4n}]{Display.SH_DEFAULT} skipping previously downloaded book id:{id:<15}')
                 print(f'            URL was: {line}\n')
                 continue
@@ -56,7 +56,7 @@ def process(filename):
                 actual_time += elapsed_time
                 ids.add(id)
                 save_ids(ids_file, ids)
-                ++done
+                done += 1
                 print(f'{Display.SH_YELLOW}>>>> [{ii:.>4n}]{Display.SH_DEFAULT} Book id:{id:<15} processed successfully in:{elapsed_time:.0f} seconds')
             except:
                 exception = sys.exc_info()[0]
