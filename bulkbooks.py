@@ -1,20 +1,89 @@
 import dbm
+from enum import Enum
 from random import randint
 from shutil import copyfile
 from time import sleep, time, process_time
 from safaribooks import Display, SafariBooks, define_arg_parser, parse_args
 
+class BOOK_PHASE(Enum):
+    STARTED = 1     # we marked it as BEGIN, go ahead and download
+    IN_PROGRESS = 2 # some other process started it
+    COMPLETED = 3   # already downloaded
 
-def load_ids(file_name):
-    with dbm.open(file_name, 'c') as db:
+def mark_begin_downloading(file_name, id):
+    print("lookup ")
+    while True:
         try:
-            return eval(db['ids'])
-        except:
-            return set()
+            with dbm.open(file_name, 'cs') as db:
+                key = str(id)
+                # print(f'before db.get({key})')
+                # phase ='xx'
+                phase = db.get(key)
+                # print(f'after db.get: {phase}')
+                if phase is None:
+                    db[key] = b'STARTED'
+                    return BOOK_PHASE.STARTED # you can start
+                elif phase == b'STARTED':
+                    return BOOK_PHASE.IN_PROGRESS # another process is handling it
+                elif phase == b'COMPLETED':
+                    return BOOK_PHASE.COMPLETED # alreaded completed download
+                else:
+                    print(f'{phase}')
+                    raise RuntimeError("Internal Error")
 
-def save_ids(file_name, ids):
-    with dbm.open(file_name, 'c') as db:
-        db['ids'] = repr(ids)
+        except dbm.error as x:
+            if x.errno == 11:
+                print(">> mark_begin dbm locked...retry")
+                sleep(randint(0,3))
+            else:
+                raise x
+
+def mark_done_downloading(file_name, id):
+    while True:
+        try:
+            with dbm.open(file_name, 'cs') as db:
+                key = str(id)
+                phase = db.get(key)
+                if phase is None:
+                    # print(">>>>>>  Internal error, db is inconsistent")
+                    raise RuntimeError("Internal error, db is inconsistent: finishing a job that was not started")
+                elif phase == b'COMPLETED':
+                    raise RuntimeError("Internal error, db is inconsistent: finishing a job that was already finished")
+                elif phase == b'STARTED':
+                    db[key] = b'COMPLETED'
+                    return
+
+        except dbm.error as x:
+            if x.errno == 11:
+                print(">> mark_done dbm locked...retry")
+                sleep(randint(0,3))
+            else:
+                raise x
+
+# def load_ids(file_name):
+#     while True:
+#         try:
+#             with dbm.open(file_name, 'c') as db:
+#                return eval(db['ids'])
+#         except dbm.error as x:
+#             if x.errno == 11:
+#                 print(">>locked...retry")
+#                 sleep(1)
+#                 continue
+#             return set()
+
+# def save_ids(file_name, ids):
+#     while True:
+#         try:
+#             with dbm.open(file_name, 'c') as db:
+#                db['ids'] = repr(ids)
+#                return
+#         except dbm.error as x:
+#             if x.errno == 11:
+#                 print(">>locked...retry")
+#                 sleep(1)
+#                 continue
+#             raise x
 
 def get_id(line):
     try:
@@ -32,7 +101,7 @@ def process(filename):
     parser = define_arg_parser()
     ii = 0
     actual_time = done = skipped = parse_err = 0
-    ids = load_ids(ids_file)
+    # ids = load_ids(ids_file)
     with open(filename) as file:
         begin_at = process_time()
         for line in file:
@@ -43,29 +112,34 @@ def process(filename):
                 print(f'{Display.SH_YELLOW}>>>> [{ii:.>4n}]{Display.SH_DEFAULT} error parsing book id from: [{line}]\n')
                 parse_err += 1
                 continue
-            if id in ids:
+            work_phase = mark_begin_downloading(ids_file, id)
+            if work_phase  !=  BOOK_PHASE.STARTED: # == BOOK_PHASE.COMPLETED or work == BOOK_PHASE.STARTED:
                 skipped += 1
-                print(f'{Display.SH_YELLOW}>>>> [{ii:.>4n}]{Display.SH_DEFAULT} skipping previously downloaded book id:{id:<15}')
+                skip_reason = 'previously dwonloaded' if work_phase == BOOK_PHASE.COMPLETED else 'a concurently downloading'
+                print(f'{Display.SH_YELLOW}>>>> [{ii:.>4n}]{Display.SH_DEFAULT} skipping {skip_reason} book with id:{id:<15}')
                 print(f'            URL was: {line}\n')
                 continue
+
             try:
                 args = parse_args(parser, [id])
                 start = process_time()
                 SafariBooks(args)
                 elapsed_time = process_time() - start
                 actual_time += elapsed_time
-                ids.add(id)
-                save_ids(ids_file, ids)
+
+                mark_done_downloading(ids_file, id)
                 done += 1
                 print(f'{Display.SH_YELLOW}>>>> [{ii:.>4n}]{Display.SH_DEFAULT} Book id:{id:<15} processed successfully in:{elapsed_time:.0f} seconds')
+
             except:
                 exception = sys.exc_info()[0]
                 print(f'{Display.SH_BG_RED}>>>> [{ii:.>4n}]{Display.SH_DEFAULT} Error downloading book id:{id:<15} exception: {exception}\n')
                 # WORKAROUND: safaribook will delete the cookie file, restore it
                 copyfile('cookies.json.saved', 'cookies.json')
+                sleep(2)
                 continue
 
-            delay_time = randint(3,19)
+            delay_time = randint(3,13)
             print(f"+++ cooling down sockets for {delay_time} seconds +++\n")
             sleep(delay_time)
 
