@@ -60,31 +60,6 @@ def mark_done_downloading(file_name, id):
             else:
                 raise x
 
-# def load_ids(file_name):
-#     while True:
-#         try:
-#             with dbm.open(file_name, 'c') as db:
-#                return eval(db['ids'])
-#         except dbm.error as x:
-#             if x.errno == 11:
-#                 print(">>locked...retry")
-#                 sleep(1)
-#                 continue
-#             return set()
-
-# def save_ids(file_name, ids):
-#     while True:
-#         try:
-#             with dbm.open(file_name, 'c') as db:
-#                db['ids'] = repr(ids)
-#                return
-#         except dbm.error as x:
-#             if x.errno == 11:
-#                 print(">>locked...retry")
-#                 sleep(1)
-#                 continue
-#             raise x
-
 def get_id(line):
     try:
         parts = line.split('/')
@@ -113,7 +88,7 @@ def process(filename):
                 parse_err += 1
                 continue
             work_phase = mark_begin_downloading(ids_file, id)
-            if work_phase  !=  BOOK_PHASE.STARTED: # == BOOK_PHASE.COMPLETED or work == BOOK_PHASE.STARTED:
+            if work_phase  !=  BOOK_PHASE.STARTED:
                 skipped += 1
                 skip_reason = 'previously dwonloaded' if work_phase == BOOK_PHASE.COMPLETED else 'a concurently downloading'
                 print(f'{Display.SH_YELLOW}>>>> [{ii:.>4n}]{Display.SH_DEFAULT} skipping {skip_reason} book with id:{id:<15}')
@@ -139,7 +114,7 @@ def process(filename):
                 sleep(2)
                 continue
 
-            delay_time = randint(3,13)
+            delay_time = randint(3,9)
             print(f"+++ cooling down sockets for {delay_time} seconds +++\n")
             sleep(delay_time)
 
