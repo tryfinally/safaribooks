@@ -10,8 +10,24 @@ class BOOK_PHASE(Enum):
     IN_PROGRESS = 2 # some other process started it
     COMPLETED = 3   # already downloaded
 
+def mark_clear_downloading(file_name, id):
+    while True:
+        try:
+            with dbm.open(file_name, 'cs') as db:
+                key = str(id)
+                phase = db.get(key)
+                if phase == b'STARTED':
+                    del db[key]
+                return
+
+        except dbm.error as x:
+            if x.errno == 11:
+                print(">> mark_begin dbm locked...retry")
+                sleep(randint(0,3))
+            else:
+                raise x
+
 def mark_begin_downloading(file_name, id):
-    print("lookup ")
     while True:
         try:
             with dbm.open(file_name, 'cs') as db:
@@ -78,7 +94,8 @@ def process(filename):
     actual_time = done = skipped = parse_err = 0
     # ids = load_ids(ids_file)
     with open(filename) as file:
-        begin_at = process_time()
+        delay_time = 0
+        begin_at = time()
         for line in file:
             ii += 1
             line = line.strip()
@@ -87,6 +104,7 @@ def process(filename):
                 print(f'{Display.SH_YELLOW}>>>> [{ii:.>4n}]{Display.SH_DEFAULT} error parsing book id from: [{line}]\n')
                 parse_err += 1
                 continue
+
             work_phase = mark_begin_downloading(ids_file, id)
             if work_phase  !=  BOOK_PHASE.STARTED:
                 skipped += 1
@@ -95,30 +113,40 @@ def process(filename):
                 print(f'            URL was: {line}\n')
                 continue
 
+
+            args = parse_args(parser, [id])
+            if delay_time != 0:
+                print(f"+++ cooling down sockets for {delay_time} seconds +++\n")
+                sleep(delay_time)
+                delay_time = randint(4,9)
+
+            print(f'{Display.SH_YELLOW}>>>> [{ii:.>4n}]{Display.SH_DEFAULT} Book id:{id:<15} start downloading')
+            start = time()
             try:
-                args = parse_args(parser, [id])
-                start = process_time()
                 SafariBooks(args)
-                elapsed_time = process_time() - start
+                elapsed_time = time() - start
                 actual_time += elapsed_time
 
                 mark_done_downloading(ids_file, id)
                 done += 1
                 print(f'{Display.SH_YELLOW}>>>> [{ii:.>4n}]{Display.SH_DEFAULT} Book id:{id:<15} processed successfully in:{elapsed_time:.0f} seconds')
 
+            except KeyboardInterrupt:
+                print('{}{} Breaking {}{}'.format(Display.SH_YELLOW,"~"*10, "~"*10, Display.SH_DEFAULT))
+                mark_clear_downloading(ids_file, id)
+                break
+
             except:
+                mark_clear_downloading(ids_file, id)
                 exception = sys.exc_info()[0]
                 print(f'{Display.SH_BG_RED}>>>> [{ii:.>4n}]{Display.SH_DEFAULT} Error downloading book id:{id:<15} exception: {exception}\n')
                 # WORKAROUND: safaribook will delete the cookie file, restore it
                 copyfile('cookies.json.saved', 'cookies.json')
-                sleep(2)
+                delay_time = 2
                 continue
 
-            delay_time = randint(3,9)
-            print(f"+++ cooling down sockets for {delay_time} seconds +++\n")
-            sleep(delay_time)
 
-        total_processing = process_time() - begin_at
+        total_processing = time() - begin_at
         print('{}{}{}'.format(Display.SH_YELLOW,"="*20, Display.SH_DEFAULT))
         print(f'{Display.SH_YELLOW}Processed   :{Display.SH_DEFAULT} {ii:>6n} Urls in {actual_time:.0f} seconds')
         print(f'{Display.SH_YELLOW}Parse errors:{Display.SH_DEFAULT} {parse_err:>6}')
