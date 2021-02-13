@@ -92,6 +92,7 @@ def process(filename):
     parser = define_arg_parser()
     ii = 0
     actual_time = done = skipped = parse_err = 0
+    with_exception = set()
     # ids = load_ids(ids_file)
     with open(filename) as file:
         delay_time = 0
@@ -137,6 +138,7 @@ def process(filename):
                 break
 
             except:
+                with_exception.add(id)
                 mark_clear_downloading(ids_file, id)
                 exception = sys.exc_info()[0]
                 print(f'{Display.SH_BG_RED}>>>> [{ii:.>4n}]{Display.SH_DEFAULT} Error downloading book id:{id:<15} exception: {exception}\n')
@@ -156,7 +158,8 @@ def process(filename):
         if done != 0:
             avg_processing = round(actual_time / done)
             print(f'{Display.SH_YELLOW}Average Time:{Display.SH_DEFAULT} {avg_processing:>6} seconds per book')
-
+        if len(with_exception) > 0:
+            print(f'{Display.SH_BG_RED}Exceptions{Display.SH_DEFAULT} while processing books:\n{Display.SH_YELLOW}{with_exception}{Display.SH_DEFAULT}')
 
 USAGE = "\n\nDownload and generate an EPUB of your favorite books from Safari Books Online.\n" + \
         "expects one argumnet: filename of a file containing books URLs or IDs\n" + \
