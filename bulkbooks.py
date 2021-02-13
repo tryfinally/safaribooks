@@ -116,9 +116,9 @@ def process(filename):
 
             args = parse_args(parser, [id])
             if delay_time != 0:
-                print(f"+++ cooling down sockets for {delay_time} seconds +++\n")
+                print(f'+++ cooling down sockets for {delay_time} seconds +++\n')
                 sleep(delay_time)
-                delay_time = randint(4,9)
+            delay_time = randint(1,7)
 
             print(f'{Display.SH_YELLOW}>>>> [{ii:.>4n}]{Display.SH_DEFAULT} Book id:{id:<15} start downloading')
             start = time()
