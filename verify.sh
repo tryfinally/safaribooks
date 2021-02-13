@@ -7,7 +7,7 @@ fi
 
 echo "Verifying $1 ..."
 echo "Book that did not download"
-for d in ${1}/*/ ; do
+for d in ${1}/*/  ${1}/.[^.]*/; do
 	flag=0
 	book=""
     for f in "${d}"* ; do
