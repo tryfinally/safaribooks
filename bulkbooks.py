@@ -150,7 +150,7 @@ def process(filename):
 
 
         total_processing = time() - begin_at
-        print('{}{}{}'.format(Display.SH_YELLOW,"="*20, Display.SH_DEFAULT))
+        print('{}{} [{}] {}{}'.format(Display.SH_YELLOW, "="*10, filename, "="*10, Display.SH_DEFAULT))
         print(f'{Display.SH_YELLOW}Processed   :{Display.SH_DEFAULT} {ii:>6n} Urls in {actual_time:.0f} seconds')
         print(f'{Display.SH_YELLOW}Parse errors:{Display.SH_DEFAULT} {parse_err:>6}')
         print(f'{Display.SH_YELLOW}Skipped     :{Display.SH_DEFAULT} {skipped:>6}')
