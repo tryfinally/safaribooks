@@ -2,7 +2,7 @@ import dbm
 from enum import Enum
 from random import randint
 from shutil import copyfile
-from time import sleep, time, process_time
+from time import sleep, time, strftime
 from safaribooks import Display, SafariBooks, define_arg_parser, parse_args
 
 class BOOK_PHASE(Enum):
@@ -106,31 +106,32 @@ def process(filename):
                 parse_err += 1
                 continue
 
-            work_phase = mark_begin_downloading(ids_file, id)
-            if work_phase  !=  BOOK_PHASE.STARTED:
-                skipped += 1
-                skip_reason = 'previously dwonloaded' if work_phase == BOOK_PHASE.COMPLETED else 'a concurently downloading'
-                print(f'{Display.SH_YELLOW}>>>> [{ii:.>4n}]{Display.SH_DEFAULT} skipping {skip_reason} book with id:{id:<15}')
-                print(f'            URL was: {line}\n')
-                continue
-
-
-            args = parse_args(parser, [id])
-            if delay_time != 0:
-                print(f'+++ cooling down sockets for {delay_time} seconds +++\n')
-                sleep(delay_time)
-            delay_time = randint(1,7)
-
-            print(f'{Display.SH_YELLOW}>>>> [{ii:.>4n}]{Display.SH_DEFAULT} Book id:{id:<15} start downloading')
-            start = time()
             try:
+                work_phase = mark_begin_downloading(ids_file, id)
+                if work_phase  !=  BOOK_PHASE.STARTED:
+                    skipped += 1
+                    skip_reason = 'previously dwonloaded' if work_phase == BOOK_PHASE.COMPLETED else 'a concurently downloading'
+                    print(f'{Display.SH_YELLOW}>>>> [{ii:.>4n}]{Display.SH_DEFAULT} skipping {skip_reason} book with id:{id:<15}')
+                    print(f'            URL was: {line}\n')
+                    continue
+
+
+                args = parse_args(parser, [id])
+                if delay_time != 0:
+                    print(f'+++ cooling down sockets for {delay_time} seconds +++\n')
+                    sleep(delay_time)
+                delay_time = randint(1,7)
+
+                print(f'{Display.SH_YELLOW}>>>> [{ii:.>4n}]{Display.SH_DEFAULT} Book id:{id:<15} start downloading @{strftime("%d %b %H:%M:%S")}')
+                start = time()
+
                 SafariBooks(args)
                 elapsed_time = time() - start
                 actual_time += elapsed_time
 
                 mark_done_downloading(ids_file, id)
                 done += 1
-                print(f'{Display.SH_YELLOW}>>>> [{ii:.>4n}]{Display.SH_DEFAULT} Book id:{id:<15} processed successfully in:{elapsed_time:.0f} seconds')
+                print(f'{Display.SH_YELLOW}>>>> [{ii:.>4n}]{Display.SH_DEFAULT} Book id:{id:<15} processed successfully @{strftime("%d %b %H:%M:%S")} - in:{elapsed_time:.0f} seconds')
 
             except KeyboardInterrupt:
                 print('{}{} Breaking {}{}'.format(Display.SH_YELLOW,"~"*10, "~"*10, Display.SH_DEFAULT))
